@@ -16,17 +16,16 @@ void setup() {
 
 const int adc_bitwidth = 10;
 const int noise_margin = 50;
-const int udelay = 30;
-const int max_delay = 30;
-const int min_delay = 30;
-const int delay_coeff = 1;
-const int adc_max = 1 << adc_bitwidth;
+const int max_delay = 1000;
+const int min_delay = 20;
+const int pulse_width = 1;  // usec
+const double delay_coeff = 1;
 const int half_adc_max = 1 << (adc_bitwidth - 1);
 
 
 int x_joy;
 int y_joy;
-int var_udelay;
+double var_udelay;
 
 void loop() {
     x_joy = analogRead(xJoyPin);
@@ -35,35 +34,32 @@ void loop() {
     if (x_joy > ((1 << (adc_bitwidth - 1)) + noise_margin)) {
         digitalWrite(xDirPin, 1);
         digitalWrite(xStepPin, 1);
+        delayMicroseconds(pulse_width);
         digitalWrite(xStepPin, 0);
-//        delayMicroseconds(udelay);
-        var_udelay = (min_delay - max_delay) * (x_joy - half_adc_max) / half_adc_max + max_delay; // May have casting/truncation issues
-//        delayMicroseconds(delay_coeff * ((1 << adc_bitwidth) - x_joy + base_delay));
-        delayMicroseconds(var_udelay * delay_coeff);
+        var_udelay = ((double)(min_delay - max_delay)) * (double)(x_joy - half_adc_max) / (double)half_adc_max + (double)max_delay; // May have casting/truncation issues
+        delayMicroseconds((int)(var_udelay * delay_coeff));
     } else if (x_joy < ((1 << (adc_bitwidth - 1)) - noise_margin)) {
         digitalWrite(xDirPin, 0);
         digitalWrite(xStepPin, 1);
+        delayMicroseconds(pulse_width);
         digitalWrite(xStepPin, 0);
-//        delayMicroseconds(udelay);
-//        delayMicroseconds(delay_coeff * ((1 << adc_bitwidth) - x_joy + base_delay));
-        var_udelay = (max_delay - min_delay) * x_joy / half_adc_max + min_delay;
-        delayMicroseconds(var_udelay * delay_coeff);
+        var_udelay = (double)(max_delay - min_delay) * (double)x_joy / (double)half_adc_max + min_delay;
+        delayMicroseconds((int)(var_udelay * delay_coeff));
     }
 
     if (y_joy > ((1 << (adc_bitwidth - 1)) + noise_margin)) {
         digitalWrite(yDirPin, 1);
         digitalWrite(yStepPin, 1);
+        delayMicroseconds(pulse_width);
         digitalWrite(yStepPin, 0);
-//        delayMicroseconds(udelay);
-//        delayMicroseconds(delay_coeff * ((1 << adc_bitwidth) - y_joy + base_delay));
-        var_udelay = (min_delay - max_delay) * (x_joy - half_adc_max) / half_adc_max + max_delay; // May have casting/truncation issues
-        delayMicroseconds(var_udelay * delay_coeff);
+        var_udelay = (double)(min_delay - max_delay) * (double)(x_joy - half_adc_max) / (double)half_adc_max + max_delay; // May have casting/truncation issues
+        delayMicroseconds((int)(var_udelay * delay_coeff));
     } else if (y_joy < ((1 << (adc_bitwidth - 1)) - noise_margin)) {
         digitalWrite(yDirPin, 0);
         digitalWrite(yStepPin, 1);
+        delayMicroseconds(pulse_width);
         digitalWrite(yStepPin, 0);
-//        delayMicroseconds(udelay);
-        var_udelay = (max_delay - min_delay) * x_joy / half_adc_max + min_delay;
-        delayMicroseconds(var_udelay * delay_coeff);
+        var_udelay = (double)(max_delay - min_delay) * (double)x_joy / (double)half_adc_max + min_delay;
+        delayMicroseconds((int)(var_udelay * delay_coeff));
     }
 }
