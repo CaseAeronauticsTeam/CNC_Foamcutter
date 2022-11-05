@@ -11,19 +11,24 @@
 #define RUNNING_JOB 2
 
 // User constants
+const int JoyBtn = 21;
 const int xJoyPin = 22;
 const int yJoyPin = 23;
 const int xDirPin = 4;
 const int yDirPin = 5;
-const int xStepPin = 6;
-const int yStepPin = 7;
-const int home_pin = 0;
-const int idle_pin = 1;
-const int start_job_pin = 2;
+const int xStepPin = 8;
+const int yStepPin = 9;
+const int idle_pin = 30;
+const int home_pin = 31;
+const int start_job_pin = 32;
+const int x1_enable_pin = 33;
+const int y1_enable_pin = 34;
+const int x2_enable_pin = 35;
+const int y2_enable_pin = 36;
 // These should probably be G-Code parameters at some point
-const double thread_pitch = 5;  // mm
-const int steps_per_rev = 300;
-const double cut_speed = 5;    // mm/s
+const double thread_pitch = 2.14;  // mm
+const int steps_per_rev = 800;
+const double cut_speed = 2.5;    // mm/s
 
 
 // System Constants
@@ -59,13 +64,25 @@ void g1MoveTo(double x2, double y2);
 
 
 void setup() {
+    pinMode(JoyBtn,  INPUT_PULLUP);
+    pinMode(xJoyPin,  INPUT);
+    pinMode(yJoyPin,  INPUT);
     pinMode(xDirPin,  OUTPUT);
     pinMode(yDirPin,  OUTPUT);
     pinMode(xStepPin, OUTPUT);
     pinMode(yStepPin, OUTPUT);
-    pinMode(home_pin, INPUT);
-    pinMode(idle_pin, INPUT);
-    pinMode(start_job_pin, INPUT);
+    pinMode(home_pin, INPUT_PULLUP);
+    pinMode(idle_pin, INPUT_PULLUP);
+    pinMode(start_job_pin, INPUT_PULLUP);
+    pinMode(x1_enable_pin, OUTPUT);
+    pinMode(x1_enable_pin, OUTPUT);
+    pinMode(y2_enable_pin, OUTPUT);
+    pinMode(y2_enable_pin, OUTPUT);
+    // Pins default to enabled
+    digitalWrite(x1_enable_pin, LOW);
+    digitalWrite(x1_enable_pin, LOW);
+    digitalWrite(x1_enable_pin, LOW);
+    digitalWrite(x1_enable_pin, LOW);
     Serial.begin(115200);
 //                while (!Serial);
     Serial.println("Starting with:");
@@ -83,17 +100,18 @@ void loop() {
     switch (state) {
         case IDLE:
             // Set LEDs
-//            Serial.println("Idling");
+            Serial.println("Idling");
 
             // Check buttons for state change
             last_state = state;
-            if (digitalRead(home_pin))
+            if (!digitalRead(home_pin))
                 state = HOMING;
-            else if (digitalRead(start_job_pin))
+            else if (!digitalRead(start_job_pin))
                 state = RUNNING_JOB;
             delay(1000);
             break;
         case HOMING:
+            Serial.println("Homing");
             x_joy = analogRead(xJoyPin);
             y_joy = analogRead(yJoyPin);
             if (x_joy > ((1 << (adc_bitwidth - 1)) + noise_margin)) {
@@ -122,9 +140,9 @@ void loop() {
 
             // Check buttons for state change
             last_state = state;
-            if (digitalRead(idle_pin))
+            if (!digitalRead(idle_pin))
                 state = IDLE;
-            else if (digitalRead(start_job_pin))
+            else if (!digitalRead(start_job_pin))
                 state = RUNNING_JOB;
             break;
         case RUNNING_JOB:
@@ -178,7 +196,7 @@ void loop() {
 
             // Check buttons for state change
             last_state = state; // ???
-            if (digitalRead(idle_pin))
+            if (!digitalRead(idle_pin))
                 state = IDLE;
             break;
 //        default:
@@ -270,7 +288,7 @@ void moveTo(double x2, double y2, unsigned long step_delay) {
     if (y2 >= current_y)
         current_y += ySteps * step_delta;
     else
-        current_y -= xSteps * step_delta;
+        current_y -= ySteps * step_delta;
 
 }
 

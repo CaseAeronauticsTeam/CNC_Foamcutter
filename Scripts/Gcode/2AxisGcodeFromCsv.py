@@ -30,7 +30,7 @@ def generate_gcode_from_csv(input_filename, output_filename, show_plot=True):
 
     if show_plot:
         print("Showing plot...")
-        plot(x, y, input_filename)
+        plot(x, y, input_filename.replace('\\', '/').split('/')[-1:][0])
         print("Closing...")
 
 
