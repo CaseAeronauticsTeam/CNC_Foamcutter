@@ -16,7 +16,7 @@ def generate_2_axis_gcode(x_series, y_series, input_filename, output_filename, s
         out += f"G1 X{x - x_origin_offset} Y{y - y_origin_offset}\n"
         length += math.sqrt((x - last_x) ** 2 + (y - last_y) ** 2)
         last_x, last_y = x, y
-    print(f"Total Length of cut: {length}mm   ==>   ~{length / (speed * 60)} minutes @ 5mm/s")
+    print(f"Total Length of cut: {length}mm   ==>   ~{length / (speed * 60)} minutes @ {speed}mm/s")
 
     print(f"Writing G-Code to {output_filename}")
     f = open(output_filename, "w")

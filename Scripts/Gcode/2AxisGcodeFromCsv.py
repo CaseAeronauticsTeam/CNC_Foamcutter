@@ -7,7 +7,7 @@ import argparse
 
 from gcode_writer import generate_2_axis_gcode
 
-SPEED = 5  # mm/s
+SPEED = 0.75  # mm/s
 
 
 def generate_gcode_from_csv(input_filename, output_filename, show_plot=True):

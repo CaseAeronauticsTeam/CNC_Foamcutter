@@ -1,5 +1,7 @@
 #include <Arduino.h>
+#include <string.h>
 #include "SdFat.h"
+
 
 #define LEFT false
 #define RIGHT true
@@ -28,7 +30,6 @@ const int y2_enable_pin = 36;
 // These should probably be G-Code parameters at some point
 const double thread_pitch = 2.14;  // mm
 const int steps_per_rev = 800;
-const double cut_speed = 2.5;    // mm/s
 
 
 // System Constants
@@ -39,8 +40,12 @@ const int min_delay = 100;
 const int pulse_width = 1;  // usec
 const double delay_coeff = 1;
 const int half_adc_max = 1 << (adc_bitwidth - 1);
-const double step_delta = thread_pitch / (double)steps_per_rev;
-const unsigned long step_delay_us = 1000000 * (step_delta / cut_speed);
+const double step_delta = thread_pitch / (double)steps_per_rev; // mm per step
+
+// Speed Settings
+double cut_speed = 2.5;    // mm per second    set by F in G1
+unsigned long step_delay_us = 1000000 * (step_delta / cut_speed);
+
 
 // Loop variables
 int x_joy;
@@ -166,22 +171,55 @@ void loop() {
             int b = file.read();
             char line_buf[500];
             if (b >= 0) {
+                // Read line into line_buf
                 int i = 0;
                 while ((char)b != '\n' && b >= 0) {
                     line_buf[i++] = (char)b;
                     b = file.read();
                 }
-                line_buf[i] = '\0';
-                if (line_buf[0] == ';' || line_buf[0] == '\n') {
-                    // Comment
+                line_buf[i] = '\0'; // Null terminate the string
+                int line_length = i;
+                // Remove Comments
+                for (int j = 0; j < line_length; j++) {
+                    if (line_buf[j] == ';') {
+                        line_buf[j] = '\0';
+                        line_length = j;
+                    }
                 }
-                else if (line_buf[0] == 'G' && line_buf[1] == '1') {
-                    double x, y;
-                    sscanf(line_buf, "G1 X%lf Y%lf", &x, &y);
+
+                if (line_buf[0] == 'G' && line_buf[1] == '1') {
+                    double f, x, y;
+                    x = 0;
+                    y = 0;
+                    const char delim[2] = " ";
+                    char* ptr = strtok(line_buf, delim); // Tokenize by spaces
+                    while (ptr != NULL) {
+                        Serial.print("Token: '");
+                        Serial.print(ptr);
+                        Serial.print("'");
+                        switch (ptr[0]) {
+                            case 'X':
+                                sscanf(ptr, "X%lf", &x);
+                                break;
+                            case 'Y':
+                                sscanf(ptr, "Y%lf", &y);
+                                break;
+                            case 'F':
+                                int ret = sscanf(ptr, "F%lf", &f);
+                                if (ret == 1) {
+                                    cut_speed = f;
+                                    step_delay_us = 1000000 * (step_delta / cut_speed);
+                                }
+                                break;
+                        }
+                        ptr = strtok(NULL, delim);
+                    }
+//                    sscanf(line_buf, "G1 X%lf Y%lf", &x, &y);
                     Serial.print("X: ");
                     Serial.print(x);
                     Serial.print(" Y: ");
                     Serial.println(y);
+
                     g1MoveTo(x, y);
                 } else {
                     Serial.println("Unsupported G-Command:");

@@ -1,19 +1,24 @@
 import math
-import datetime
+
 import ezdxf
 import matplotlib.pyplot as plt
-from gcode_writer import generate_2_axis_gcode
 
+from gcode_writer import generate_2_axis_gcode
 
 dx = 0.1
 
 
 def plot(x_series, y_series, plot_name):
+    x_origin_offset = x_series[0]
+    y_origin_offset = y_series[0]
     max_x, max_y = 0, 0
     for x in x_series:
         max_x = abs(x) if abs(x) > max_x else max_x
     for y in y_series:
         max_y = abs(y) if abs(y) > max_y else max_y
+
+    max_x -= x_origin_offset
+    max_y -= y_origin_offset
 
     plt.style.use('dark_background')
     fig, ax = plt.subplots()
@@ -21,6 +26,10 @@ def plot(x_series, y_series, plot_name):
     for i in range(1, len(x_series)):
         x1, x2 = x_series[i-1:i+1]
         y1, y2 = y_series[i-1:i+1]
+        x1 -= x_origin_offset
+        x2 -= x_origin_offset
+        y1 -= y_origin_offset
+        y2 -= y_origin_offset
         # ax.plot(x_series[i-1:i+1], y_series[i-1:i+1], f"#{'%06x' % (i // 2)}", lw=.1)
         ax.plot((x1, x2), (y1, y2), f"#ff0000", lw=.2)
         plt.arrow(x1, y1, x2 - x1, y2 - y1, shape='full', lw=0, length_includes_head=True, head_width=1)
@@ -28,7 +37,7 @@ def plot(x_series, y_series, plot_name):
         # print(f"Color: #{'%06x' % (i // 8)}")
 
 
-    plt.plot(x_series[0], y_series[0], marker="o", markersize=10, markeredgecolor="#00ff00", markerfacecolor="#00000000")
+    plt.plot(x_series[0] - x_origin_offset, y_series[0] - y_origin_offset, marker="o", markersize=10, markeredgecolor="#00ff00", markerfacecolor="#00000000")
 
     ax.set(xlabel='mm', ylabel='mm', title=plot_name)
 
@@ -84,6 +93,8 @@ def get_shapes_from_msp(msp):
             center = e.dxf.center
             radius = e.dxf.radius
             print(f"Radius: {radius}")
+            # dth1 = smallest unit of angular precision that corresponds exactly to the linear precision,
+            #        while truncating excess angle, i.e., this will result in the arc not ending where intended
             dth1 = math.degrees(2 * math.asin(dx / (2 * radius * 25.4)))
             # Always moving counter-clockwise (positive theta)
             if start_angle < end_angle:
@@ -91,6 +102,7 @@ def get_shapes_from_msp(msp):
             else:
                 theta = 360 - abs(start_angle - end_angle)
             n_wedges = math.floor(theta / dth1)
+            # dth2 = slightly larger than dth2 that extends the arc to end where intended
             dth2 = math.radians(theta / n_wedges)  # dth1= degrees, dth2 = radians
             print(f"N:{n_wedges}, Theta:{theta}")
             print(f"dth2 rad: {dth2}, dth2 deg: {math.degrees(dth2)}, dth1: {dth1}")
@@ -160,7 +172,7 @@ def order_points_from_shapes(shapes):
 
 def generate_gcode_from_dxf(input_filename, output_filename, show_plot=True, reverse=False):
     try:
-        doc = ezdxf.readfile("D:\\Projects\\CaseAeronauticsTeam\\CNC_Foamcutter\\Airfoils\\NACA2412 with Hole.DXF")
+        doc = ezdxf.readfile(input_filename)
     except IOError:
         print(f"Not a DXF file or a generic I/O error.")
         exit()
@@ -179,8 +191,10 @@ def generate_gcode_from_dxf(input_filename, output_filename, show_plot=True, rev
 
     ordered_points = order_points_from_shapes(shapes)
 
+    print(f"Points:\n{ordered_points}")
+
     # Find left most point and rotate list to make that the starting point
-    min_x = 9e99
+    min_x = ordered_points[0][0]
     start_index = 0
     for i, p in enumerate(ordered_points):
         if p[0] < min_x:
@@ -192,7 +206,7 @@ def generate_gcode_from_dxf(input_filename, output_filename, show_plot=True, rev
     if reverse:
         ordered_points.reverse()
 
-    # Check to make sure points list is a closed loop
+    # Check to make sure list of points is a closed loop
     if ordered_points[0] != ordered_points[-1]:
         ordered_points.append(ordered_points[0])
 
@@ -202,9 +216,9 @@ def generate_gcode_from_dxf(input_filename, output_filename, show_plot=True, rev
     if show_plot:
         plot(x, y, "Test")
 
-    generate_2_axis_gcode(x, y, input_filename, output_filename)
+    generate_2_axis_gcode(x, y, input_filename, output_filename, 0.75)
 
 
 if __name__ == '__main__':
-    generate_gcode_from_dxf("D:\\Projects\\CaseAeronauticsTeam\\CNC_Foamcutter\\Airfoils\\NACA2412 with Hole.DXF",
+    generate_gcode_from_dxf("D:\\Projects\\CaseAeronauticsTeam\\CNC_Foamcutter\\Airfoils\\NACA2412 4.5 DXF inner half.DXF",
                             "out.gcode", show_plot=True)
