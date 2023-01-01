@@ -23,10 +23,9 @@ const int yStepPin = 9;
 const int idle_pin = 30;
 const int home_pin = 31;
 const int start_job_pin = 32;
-const int x1_enable_pin = 33;
-const int y1_enable_pin = 34;
-const int x2_enable_pin = 35;
-const int y2_enable_pin = 36;
+const int idle_state_led = 33;
+const int homing_state_led = 34;
+const int running_job_state_led = 35;
 // These should probably be G-Code parameters at some point
 const double thread_pitch = 2.14;  // mm
 const int steps_per_rev = 800;
@@ -79,15 +78,6 @@ void setup() {
     pinMode(home_pin, INPUT_PULLUP);
     pinMode(idle_pin, INPUT_PULLUP);
     pinMode(start_job_pin, INPUT_PULLUP);
-    pinMode(x1_enable_pin, OUTPUT);
-    pinMode(x1_enable_pin, OUTPUT);
-    pinMode(y2_enable_pin, OUTPUT);
-    pinMode(y2_enable_pin, OUTPUT);
-    // Pins default to enabled
-    digitalWrite(x1_enable_pin, LOW);
-    digitalWrite(x1_enable_pin, LOW);
-    digitalWrite(x1_enable_pin, LOW);
-    digitalWrite(x1_enable_pin, LOW);
     Serial.begin(115200);
 //                while (!Serial);
     Serial.println("Starting with:");
