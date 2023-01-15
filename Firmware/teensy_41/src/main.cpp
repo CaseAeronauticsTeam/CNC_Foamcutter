@@ -16,13 +16,15 @@
 const int JoyBtn = 21;
 const int xJoyPin = 22;
 const int yJoyPin = 23;
+// TODO: CHECK PINOUT AGAINST PCB!!!
 const int xDirPin = 4;
-const int yDirPin = 5;
-const int xStepPin = 8;
+const int xStepPin = 5;
+const int yDirPin = 8;
 const int yStepPin = 9;
-const int idle_pin = 30;
+const int ext_sd_cs = 10;
+const int start_job_pin = 30;
 const int home_pin = 31;
-const int start_job_pin = 32;
+const int idle_pin = 32;
 const int idle_state_led = 33;
 const int homing_state_led = 34;
 const int running_job_state_led = 35;
@@ -69,8 +71,8 @@ void g1MoveTo(double x2, double y2);
 
 void setup() {
     pinMode(JoyBtn,  INPUT_PULLUP);
-    pinMode(xJoyPin,  INPUT);
-    pinMode(yJoyPin,  INPUT);
+    pinMode(xJoyPin,  INPUT); // Analog In
+    pinMode(yJoyPin,  INPUT); // Analog In
     pinMode(xDirPin,  OUTPUT);
     pinMode(yDirPin,  OUTPUT);
     pinMode(xStepPin, OUTPUT);
