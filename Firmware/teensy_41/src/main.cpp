@@ -2,6 +2,9 @@
 #include <string.h>
 #include "SdFat.h"
 
+#include <SPI.h>
+#include <SD.h>
+
 
 #define LEFT false
 #define RIGHT true
@@ -80,6 +83,9 @@ void setup() {
     pinMode(home_pin, INPUT_PULLUP);
     pinMode(idle_pin, INPUT_PULLUP);
     pinMode(start_job_pin, INPUT_PULLUP);
+    pinMode(idle_state_led,  OUTPUT);
+    pinMode(homing_state_led, OUTPUT);
+    pinMode(running_job_state_led, OUTPUT);
     Serial.begin(115200);
 //                while (!Serial);
     Serial.println("Starting with:");
@@ -97,6 +103,9 @@ void loop() {
     switch (state) {
         case IDLE:
             // Set LEDs
+            digitalWrite(idle_state_led, 1);
+            digitalWrite(homing_state_led, 0);
+            digitalWrite(running_job_state_led, 0);
             Serial.println("Idling");
 
             // Check buttons for state change
@@ -108,7 +117,12 @@ void loop() {
             delay(1000);
             break;
         case HOMING:
+            digitalWrite(idle_state_led, 0);
+            digitalWrite(homing_state_led, 1);
+            digitalWrite(running_job_state_led, 0);
             Serial.println("Homing");
+
+
             x_joy = analogRead(xJoyPin);
             y_joy = analogRead(yJoyPin);
             if (x_joy > ((1 << (adc_bitwidth - 1)) + noise_margin)) {
@@ -144,6 +158,9 @@ void loop() {
             break;
         case RUNNING_JOB:
             if (state != last_state) {
+                digitalWrite(idle_state_led, 0);
+                digitalWrite(homing_state_led, 0);
+                digitalWrite(running_job_state_led, 1);
                 Serial.println("Running Job");
                 current_x = 0;
                 current_y = 0;
@@ -197,7 +214,7 @@ void loop() {
                                 sscanf(ptr, "Y%lf", &y);
                                 break;
                             case 'F':
-                                int ret = sscanf(ptr, "F%lf", &f);
+                                int ret = sscanf(ptr, "+F%lf", &f);
                                 if (ret == 1) {
                                     cut_speed = f;
                                     step_delay_us = 1000000 * (step_delta / cut_speed);
