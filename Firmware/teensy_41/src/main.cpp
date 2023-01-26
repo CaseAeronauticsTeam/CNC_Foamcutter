@@ -87,7 +87,7 @@ void setup() {
     pinMode(homing_state_led, OUTPUT);
     pinMode(running_job_state_led, OUTPUT);
     Serial.begin(115200);
-//                while (!Serial);
+//    while (!Serial);
     Serial.println("Starting with:");
     Serial.print("Cut speed:");
     Serial.println(cut_speed, 8);
@@ -106,7 +106,8 @@ void loop() {
             digitalWrite(idle_state_led, 1);
             digitalWrite(homing_state_led, 0);
             digitalWrite(running_job_state_led, 0);
-            Serial.println("Idling");
+//            Serial.println("Idling");
+
 
             // Check buttons for state change
             last_state = state;
@@ -114,7 +115,7 @@ void loop() {
                 state = HOMING;
             else if (!digitalRead(start_job_pin))
                 state = RUNNING_JOB;
-            delay(1000);
+//            delay(1000);
             break;
         case HOMING:
             digitalWrite(idle_state_led, 0);
@@ -214,7 +215,7 @@ void loop() {
                                 sscanf(ptr, "Y%lf", &y);
                                 break;
                             case 'F':
-                                int ret = sscanf(ptr, "+F%lf", &f);
+                                int ret = sscanf(ptr, "F%lf", &f);
                                 if (ret == 1) {
                                     cut_speed = f;
                                     step_delay_us = 1000000 * (step_delta / cut_speed);
@@ -245,7 +246,7 @@ void loop() {
             last_state = state; // ???
             if (!digitalRead(idle_pin))
                 state = IDLE;
-            break;
+        break;
 //        default:
 //            state = IDLE;
     }
