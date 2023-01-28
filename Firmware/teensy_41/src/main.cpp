@@ -61,14 +61,18 @@ double current_x = 0.;
 double current_y = 0.;
 int state = IDLE;
 int last_state = state;
+bool sd_initialized = false;
 
-SdFat sd;
-SdFile file;
+//SdFat sd;
+//SdFile file;
+File file;
+
 
 void stepX(bool dir);
 void stepY(bool dir);
 void g0MoveTo(double x2, double y2);
 void g1MoveTo(double x2, double y2);
+void angry_blink();
 
 
 
@@ -80,12 +84,14 @@ void setup() {
     pinMode(yDirPin,  OUTPUT);
     pinMode(xStepPin, OUTPUT);
     pinMode(yStepPin, OUTPUT);
+    pinMode(ext_sd_cs, OUTPUT);
     pinMode(home_pin, INPUT_PULLUP);
     pinMode(idle_pin, INPUT_PULLUP);
     pinMode(start_job_pin, INPUT_PULLUP);
     pinMode(idle_state_led,  OUTPUT);
     pinMode(homing_state_led, OUTPUT);
     pinMode(running_job_state_led, OUTPUT);
+    delayMicroseconds(50);
     Serial.begin(115200);
 //    while (!Serial);
     Serial.println("Starting with:");
@@ -107,7 +113,10 @@ void loop() {
             digitalWrite(homing_state_led, 0);
             digitalWrite(running_job_state_led, 0);
 //            Serial.println("Idling");
-
+            Serial.print("Home Pin: ");
+            Serial.println(digitalRead(home_pin));
+            Serial.print("Job Pin: ");
+            Serial.println(digitalRead(start_job_pin));
 
             // Check buttons for state change
             last_state = state;
@@ -115,7 +124,7 @@ void loop() {
                 state = HOMING;
             else if (!digitalRead(start_job_pin))
                 state = RUNNING_JOB;
-//            delay(1000);
+            delay(1000);
             break;
         case HOMING:
             digitalWrite(idle_state_led, 0);
@@ -166,82 +175,91 @@ void loop() {
                 current_x = 0;
                 current_y = 0;
                 // Init SD Card and start job
-                Serial.println("Initializing SD card...");
-                if (!sd.begin(SdioConfig(FIFO_SDIO))) {
-                    Serial.println("initialization failed!");
-                }
-                Serial.println("Initialized SD Card");
-
-                if (!file.open("job.gcode", O_RDWR | O_CREAT)) {
-                    Serial.println("Open failed!");
-                }
-                Serial.println("Opened File");
-                Serial.println("\nDone Initializing");
-            }
-            int b = file.read();
-            char line_buf[500];
-            if (b >= 0) {
-                // Read line into line_buf
-                int i = 0;
-                while ((char)b != '\n' && b >= 0) {
-                    line_buf[i++] = (char)b;
-                    b = file.read();
-                }
-                line_buf[i] = '\0'; // Null terminate the string
-                int line_length = i;
-                // Remove Comments
-                for (int j = 0; j < line_length; j++) {
-                    if (line_buf[j] == ';') {
-                        line_buf[j] = '\0';
-                        line_length = j;
-                    }
-                }
-
-                if (line_buf[0] == 'G' && line_buf[1] == '1') {
-                    double f, x, y;
-                    x = 0;
-                    y = 0;
-                    const char delim[2] = " ";
-                    char* ptr = strtok(line_buf, delim); // Tokenize by spaces
-                    while (ptr != NULL) {
-                        Serial.print("Token: '");
-                        Serial.print(ptr);
-                        Serial.print("'");
-                        switch (ptr[0]) {
-                            case 'X':
-                                sscanf(ptr, "X%lf", &x);
-                                break;
-                            case 'Y':
-                                sscanf(ptr, "Y%lf", &y);
-                                break;
-                            case 'F':
-                                int ret = sscanf(ptr, "F%lf", &f);
-                                if (ret == 1) {
-                                    cut_speed = f;
-                                    step_delay_us = 1000000 * (step_delta / cut_speed);
-                                }
-                                break;
-                        }
-                        ptr = strtok(NULL, delim);
-                    }
-//                    sscanf(line_buf, "G1 X%lf Y%lf", &x, &y);
-                    Serial.print("X: ");
-                    Serial.print(x);
-                    Serial.print(" Y: ");
-                    Serial.println(y);
-
-                    g1MoveTo(x, y);
+//                Serial.println("Initializing SD card...");
+//                if (!sd.begin(SdioConfig(FIFO_SDIO))) {
+//                    Serial.println("initialization failed!");
+//                }
+//                Serial.println("Initialized SD Card");
+//
+//                if (!file.open("job.gcode", O_RDWR | O_CREAT)) {
+//                    Serial.println("Open failed!");
+//                }
+//                Serial.println("Opened File");
+//                Serial.println("\nDone Initializing");
+                if (SD.begin(ext_sd_cs) && (file = SD.open("job.txt"))) {
+                    Serial.println("SD card initialized") ;
+                    sd_initialized = true;
                 } else {
-                    Serial.println("Unsupported G-Command:");
-                    Serial.println(line_buf);
+                    Serial.println("initialization failed!");
+                    sd_initialized = false;
+                    angry_blink();
                 }
-
-            } else {
-                Serial.println("Done");
-                file.close();
-                state = IDLE;
             }
+            if (sd_initialized) {
+                int b = file.read();
+                char line_buf[500];
+                if (b >= 0) {
+                    // Read line into line_buf
+                    int i = 0;
+                    while ((char) b != '\n' && b >= 0) {
+                        line_buf[i++] = (char) b;
+                        b = file.read();
+                    }
+                    line_buf[i] = '\0'; // Null terminate the string
+                    int line_length = i;
+                    // Remove Comments
+                    for (int j = 0; j < line_length; j++) {
+                        if (line_buf[j] == ';') {
+                            line_buf[j] = '\0';
+                            line_length = j;
+                        }
+                    }
 
+                    if (line_buf[0] == 'G' && line_buf[1] == '1') {
+                        double f, x, y;
+                        x = 0;
+                        y = 0;
+                        const char delim[2] = " ";
+                        char *ptr = strtok(line_buf, delim); // Tokenize by spaces
+                        while (ptr != NULL) {
+                            Serial.print("Token: '");
+                            Serial.print(ptr);
+                            Serial.print("'");
+                            switch (ptr[0]) {
+                                case 'X':
+                                    sscanf(ptr, "X%lf", &x);
+                                    break;
+                                case 'Y':
+                                    sscanf(ptr, "Y%lf", &y);
+                                    break;
+                                case 'F':
+                                    int ret = sscanf(ptr, "F%lf", &f);
+                                    if (ret == 1) {
+                                        cut_speed = f;
+                                        step_delay_us = 1000000 * (step_delta / cut_speed);
+                                    }
+                                    break;
+                            }
+                            ptr = strtok(NULL, delim);
+                        }
+                        //                    sscanf(line_buf, "G1 X%lf Y%lf", &x, &y);
+                        Serial.print("X: ");
+                        Serial.print(x);
+                        Serial.print(" Y: ");
+                        Serial.println(y);
+
+                        g1MoveTo(x, y);
+                    } else {
+                        Serial.println("Unsupported G-Command:");
+                        Serial.println(line_buf);
+                    }
+
+                } else {
+                    Serial.println("Done");
+                    file.close();
+                    state = IDLE;
+                }
+            }
             // Check buttons for state change
             last_state = state; // ???
             if (!digitalRead(idle_pin))
@@ -348,4 +366,12 @@ void g0MoveTo(double x2, double y2) {
 
 void g1MoveTo(double x2, double y2) {
     moveTo(x2, y2, step_delay_us);
+}
+
+
+void angry_blink() {
+    for (int i = 0; i < 8; i++) {
+        digitalWrite(running_job_state_led, !digitalRead(running_job_state_led));
+        delayMicroseconds(250 * 1000);
+    }
 }

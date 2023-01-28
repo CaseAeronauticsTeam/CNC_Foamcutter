@@ -197,7 +197,7 @@ def generate_gcode_from_dxf(input_filename, output_filename, show_plot=True, rev
     min_x = ordered_points[0][0]
     start_index = 0
     for i, p in enumerate(ordered_points):
-        if p[0] < min_x:
+        if p[0] > min_x:
             min_x = p[0]
             start_index = i
     print(f"Min_x: {min_x}, Start Index: {start_index}")
@@ -220,5 +220,5 @@ def generate_gcode_from_dxf(input_filename, output_filename, show_plot=True, rev
 
 
 if __name__ == '__main__':
-    generate_gcode_from_dxf("D:\\Projects\\CaseAeronauticsTeam\\CNC_Foamcutter\\Airfoils\\NACA2412 4.5 DXF inner half.DXF",
+    generate_gcode_from_dxf("D:\\Projects\\CaseAeronauticsTeam\\CNC_Foamcutter\\Airfoils\\FS_x-01-001 NACA2412 foam wing DXF inner half.DXF",
                             "out.gcode", show_plot=True)
