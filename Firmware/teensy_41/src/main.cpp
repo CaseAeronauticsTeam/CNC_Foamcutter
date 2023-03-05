@@ -69,6 +69,7 @@ void stepX(bool dir);
 void stepY(bool dir);
 void g0MoveTo(double x2, double y2);
 void g1MoveTo(double x2, double y2);
+bool readNoisyPin(int pin);
 
 
 
@@ -87,7 +88,7 @@ void setup() {
     pinMode(homing_state_led, OUTPUT);
     pinMode(running_job_state_led, OUTPUT);
     Serial.begin(115200);
-//                while (!Serial);
+//    while (!Serial);
     Serial.println("Starting with:");
     Serial.print("Cut speed:");
     Serial.println(cut_speed, 8);
@@ -106,15 +107,16 @@ void loop() {
             digitalWrite(idle_state_led, 1);
             digitalWrite(homing_state_led, 0);
             digitalWrite(running_job_state_led, 0);
-            Serial.println("Idling");
+//            Serial.println("Idling");
+
 
             // Check buttons for state change
             last_state = state;
-            if (!digitalRead(home_pin))
+            if (!readNoisyPin(home_pin))
                 state = HOMING;
-            else if (!digitalRead(start_job_pin))
+            else if (!readNoisyPin(start_job_pin))
                 state = RUNNING_JOB;
-            delay(1000);
+//            delay(1000);
             break;
         case HOMING:
             digitalWrite(idle_state_led, 0);
@@ -151,9 +153,9 @@ void loop() {
 
             // Check buttons for state change
             last_state = state;
-            if (!digitalRead(idle_pin))
+            if (!readNoisyPin(idle_pin))
                 state = IDLE;
-            else if (!digitalRead(start_job_pin))
+            else if (!readNoisyPin(start_job_pin))
                 state = RUNNING_JOB;
             break;
         case RUNNING_JOB:
@@ -214,7 +216,7 @@ void loop() {
                                 sscanf(ptr, "Y%lf", &y);
                                 break;
                             case 'F':
-                                int ret = sscanf(ptr, "+F%lf", &f);
+                                int ret = sscanf(ptr, "F%lf", &f);
                                 if (ret == 1) {
                                     cut_speed = f;
                                     step_delay_us = 1000000 * (step_delta / cut_speed);
@@ -243,9 +245,9 @@ void loop() {
 
             // Check buttons for state change
             last_state = state; // ???
-            if (!digitalRead(idle_pin))
+            if (!readNoisyPin(idle_pin))
                 state = IDLE;
-            break;
+        break;
 //        default:
 //            state = IDLE;
     }
@@ -347,4 +349,16 @@ void g0MoveTo(double x2, double y2) {
 
 void g1MoveTo(double x2, double y2) {
     moveTo(x2, y2, step_delay_us);
+}
+
+
+bool readNoisyPin(int pin) {
+    bool val1;
+    bool val2;
+    do {
+        val1 = digitalRead(pin);
+        delayMicroseconds(100);
+        val2 = digitalRead(pin);
+    } while (val1 != val2);
+    return val1;
 }

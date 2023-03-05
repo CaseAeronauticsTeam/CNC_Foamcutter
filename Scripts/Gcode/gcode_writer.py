@@ -12,11 +12,18 @@ def generate_2_axis_gcode(x_series, y_series, input_filename, output_filename, s
     x_origin_offset = x_series[0]
     y_origin_offset = y_series[0]
 
-    for x, y in zip(x_series, y_series):
-        out += f"G1 X{x - x_origin_offset} Y{y - y_origin_offset}\n"
+    for i, (x, y) in enumerate(zip(x_series, y_series)):
+        if i == 0:
+            out = f"G1 F{speed} X{x - x_origin_offset} Y{y - y_origin_offset}\n"
+        else:
+            out += f"G1 X{x - x_origin_offset} Y{y - y_origin_offset}\n"
         length += math.sqrt((x - last_x) ** 2 + (y - last_y) ** 2)
         last_x, last_y = x, y
+
+    print("\n\n--------------------------------------------------------------------------------")
     print(f"Total Length of cut: {length}mm   ==>   ~{length / (speed * 60)} minutes @ {speed}mm/s")
+    print(f"Chord: {(max(x_series) - min(x_series)) / 25.4} in")
+    print("--------------------------------------------------------------------------------\n")
 
     print(f"Writing G-Code to {output_filename}")
     f = open(output_filename, "w")

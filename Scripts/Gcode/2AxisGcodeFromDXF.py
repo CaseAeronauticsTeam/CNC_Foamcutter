@@ -8,24 +8,30 @@ from gcode_writer import generate_2_axis_gcode
 dx = 0.1
 
 
-def plot(x_series, y_series, plot_name):
+def plot(x_series, y_series, plot_name, cut_from_trailing_edge=False):
     x_origin_offset = x_series[0]
     y_origin_offset = y_series[0]
-    max_x, max_y = 0, 0
-    for x in x_series:
-        max_x = abs(x) if abs(x) > max_x else max_x
-    for y in y_series:
-        max_y = abs(y) if abs(y) > max_y else max_y
+    max_x, max_y = max(x_series), max(y_series)
+    min_x, min_y = min(x_series), min(y_series)
+    x_chord = max_x - min_x
+    y_chord = max_y - min_y  # I know this isn't really chord... sue me
+    # for x in x_series:
+    #     max_x = abs(x) if abs(x) > max_x else max_x
+    # for y in y_series:
+    #     max_y = abs(y) if abs(y) > max_y else max_y
 
-    max_x -= x_origin_offset
-    max_y -= y_origin_offset
+    print(f"Plot Offset: {(x_origin_offset, y_origin_offset)}")
+
+    if not cut_from_trailing_edge:
+        max_x -= x_origin_offset
+        max_y -= y_origin_offset
 
     plt.style.use('dark_background')
     fig, ax = plt.subplots()
     # ax.plot(x_series, y_series, "#ff0000", lw=.1)
     for i in range(1, len(x_series)):
-        x1, x2 = x_series[i-1:i+1]
-        y1, y2 = y_series[i-1:i+1]
+        x1, x2 = x_series[i - 1:i + 1]
+        y1, y2 = y_series[i - 1:i + 1]
         x1 -= x_origin_offset
         x2 -= x_origin_offset
         y1 -= y_origin_offset
@@ -36,21 +42,31 @@ def plot(x_series, y_series, plot_name):
         # print(f"Cords: {((x1, x2), (y1, y2))}")
         # print(f"Color: #{'%06x' % (i // 8)}")
 
-
-    plt.plot(x_series[0] - x_origin_offset, y_series[0] - y_origin_offset, marker="o", markersize=10, markeredgecolor="#00ff00", markerfacecolor="#00000000")
+    plt.plot(x_series[0] - x_origin_offset, y_series[0] - y_origin_offset, marker="o", markersize=10,
+             markeredgecolor="#00ff00", markerfacecolor="#00000000")
 
     ax.set(xlabel='mm', ylabel='mm', title=plot_name)
 
     ax.grid()
 
-    if max_x > max_y:
-        plt.xlim(-max_x * 0.1, max_x + max_x * 0.1)
-        plt.ylim((-max_x / 2) - max_x * 0.1, (max_x / 2) + max_x * 0.1)
-    else:
-        plt.xlim(-max_y * 0.1, max_y * 2 + max_y * 0.1)
-        plt.ylim(-max_y * 1.1, max_y * 1.1)
 
-    fig.savefig("test.png", dpi=2000)
+    print(f"Chord: {x_chord}\nThickenss: {y_chord}")
+    if cut_from_trailing_edge:
+        if x_chord > y_chord:
+            plt.xlim(-x_chord * 0.1 - x_chord, x_chord * 0.1)
+            plt.ylim((-x_chord / 2) - x_chord * 0.1, (x_chord / 2) + x_chord * 0.1)
+        else:
+            plt.xlim(-y_chord * 0.1, y_chord * 2 + y_chord * 0.1)
+            plt.ylim(-y_chord * 1.1, y_chord * 1.1)
+    else:
+        if x_chord > y_chord:
+            plt.xlim(-x_chord * 0.1, x_chord + x_chord * 0.1)
+            plt.ylim((-x_chord / 2) - x_chord * 0.1, (x_chord / 2) + x_chord * 0.1)
+        else:
+            plt.xlim(-y_chord * 0.1, y_chord * 2 + y_chord * 0.1)
+            plt.ylim(-y_chord * 1.1, y_chord * 1.1)
+
+    fig.savefig("preview.png", dpi=2000)
     plt.show()
 
 
@@ -61,14 +77,19 @@ class Shape:
         self.points = points
         self.name = name
 
+    def reverse(self):
+        self.points.reverse()
+        self.start = self.points[0]
+        self.end = self.points[-1]
+
 
 def get_shapes_from_msp(msp):
     shapes = []
     for e in msp:
         if e.dxftype() == "LINE":
-            print("LINE on layer: %s\n" % e.dxf.layer)
-            print("start point: %s\n" % e.dxf.start)
-            print("end point: %s\n" % e.dxf.end)
+            print("LINE on layer: %s" % e.dxf.layer)
+            print("\tstart point: %s" % e.dxf.start)
+            print("\tend point: %s\n" % e.dxf.end)
             x1 = e.dxf.start[0] * 25.4
             y1 = e.dxf.start[1] * 25.4
             x2 = e.dxf.end[0] * 25.4
@@ -77,22 +98,23 @@ def get_shapes_from_msp(msp):
             shapes.append(line)
         elif e.dxftype() == "SPLINE":
             print("SPLINE on layer: %s" % e.dxf.layer)
-            print(f"Degree {e.dxf.degree}")
-            print(f"Control points {e.dxf.n_control_points}")
-            print(f"Closed {e.closed}")
+            print(f"\tDegree {e.dxf.degree}")
+            print(f"\tControl points {e.dxf.n_control_points}")
+            print(f"\tClosed: {e.closed}\n")
             points = []
             for cp in e.control_points:
                 points.append((cp[0] * 25.4, cp[1] * 25.4))
             spline = Shape(points, "Spline")
             shapes.append(spline)
         elif e.dxftype() == "ARC":
-            print(f"Start Angle {e.dxf.start_angle}")
-            print(f"End Angle {e.dxf.end_angle}")
+            print("ARC on layer: %s" % e.dxf.layer)
+            print(f"\tStart Angle {e.dxf.start_angle}")
+            print(f"\tEnd Angle {e.dxf.end_angle}")
             start_angle = e.dxf.start_angle
             end_angle = e.dxf.end_angle
             center = e.dxf.center
             radius = e.dxf.radius
-            print(f"Radius: {radius}")
+            print(f"\tRadius: {radius}")
             # dth1 = smallest unit of angular precision that corresponds exactly to the linear precision,
             #        while truncating excess angle, i.e., this will result in the arc not ending where intended
             dth1 = math.degrees(2 * math.asin(dx / (2 * radius * 25.4)))
@@ -103,9 +125,9 @@ def get_shapes_from_msp(msp):
                 theta = 360 - abs(start_angle - end_angle)
             n_wedges = math.floor(theta / dth1)
             # dth2 = slightly larger than dth2 that extends the arc to end where intended
-            dth2 = math.radians(theta / n_wedges)  # dth1= degrees, dth2 = radians
-            print(f"N:{n_wedges}, Theta:{theta}")
-            print(f"dth2 rad: {dth2}, dth2 deg: {math.degrees(dth2)}, dth1: {dth1}")
+            dth2 = math.radians(theta / n_wedges)  # dth1 = degrees, dth2 = radians
+            print(f"\tN:{n_wedges}, Theta:{theta}")
+            print(f"\tdth2 rad: {dth2}, dth2 deg: {math.degrees(dth2)}, dth1: {dth1}\n")
             points = []
             for i in range(n_wedges):
                 current_angle = i * dth2 + math.radians(start_angle)
@@ -115,6 +137,7 @@ def get_shapes_from_msp(msp):
                                25.4 * radius * math.sin(current_angle) + center[1] * 25.4))
             arc = Shape(points, "Arc")
             shapes.append(arc)
+        # Ignore TEXT objects
     return shapes
 
 
@@ -131,9 +154,10 @@ def order_points_from_shapes(shapes):
         if dist > largest_dist:
             largest_dist = dist
             largest_shape = shape
+    print(f"Largest Shape: {largest_shape.name} {(largest_shape.start, largest_shape.end)}\n")
 
     points = []
-    shape = largest_shape
+    shape = largest_shape  # Start ordering with the largest shape
     shapes_to_draw = shapes.copy()
     debug_order_list = []
     for _ in range(len(shapes)):
@@ -160,7 +184,7 @@ def order_points_from_shapes(shapes):
         else:
             min_shape = shape
         if is_end:
-            min_shape.points.reverse()
+            min_shape.reverse()
         # for p in min_shape.points:
         #     points.append(p)
         shape = min_shape
@@ -170,7 +194,7 @@ def order_points_from_shapes(shapes):
     return points
 
 
-def generate_gcode_from_dxf(input_filename, output_filename, show_plot=True, reverse=False):
+def generate_gcode_from_dxf(input_filename, output_filename, speed, show_plot=True, reverse=False, cut_from_trailing_edge=False):
     try:
         doc = ezdxf.readfile(input_filename)
     except IOError:
@@ -184,7 +208,7 @@ def generate_gcode_from_dxf(input_filename, output_filename, show_plot=True, rev
 
     print("DXF Contents:")
     for e in msp:
-        print(e.dxftype())
+        print('\t' + e.dxftype())
     print("\n\n")
 
     shapes = get_shapes_from_msp(msp)
@@ -194,13 +218,21 @@ def generate_gcode_from_dxf(input_filename, output_filename, show_plot=True, rev
     print(f"Points:\n{ordered_points}")
 
     # Find left most point and rotate list to make that the starting point
-    min_x = ordered_points[0][0]
+    min_or_max_x = ordered_points[0][0]
     start_index = 0
     for i, p in enumerate(ordered_points):
-        if p[0] < min_x:
-            min_x = p[0]
-            start_index = i
-    print(f"Min_x: {min_x}, Start Index: {start_index}")
+        if cut_from_trailing_edge:
+            if p[0] > min_or_max_x:
+                min_or_max_x = p[0]
+                start_index = i
+        else:
+            if p[0] < min_or_max_x:
+                min_or_max_x = p[0]
+                start_index = i
+    if cut_from_trailing_edge:
+        print(f"Max_x: {min_or_max_x}, Start Index: {start_index}")
+    else:
+        print(f"Min_x: {min_or_max_x}, Start Index: {start_index}")
     ordered_points = ordered_points[start_index:] + ordered_points[:start_index]
 
     if reverse:
@@ -214,11 +246,13 @@ def generate_gcode_from_dxf(input_filename, output_filename, show_plot=True, rev
     y = [p[1] for p in ordered_points]
 
     if show_plot:
-        plot(x, y, "Test")
+        plot(x, y, input_filename.split('\\')[-1], cut_from_trailing_edge=cut_from_trailing_edge)
 
-    generate_2_axis_gcode(x, y, input_filename, output_filename, 0.75)
+    generate_2_axis_gcode(x, y, input_filename, output_filename, speed)
 
 
 if __name__ == '__main__':
-    generate_gcode_from_dxf("D:\\Projects\\CaseAeronauticsTeam\\CNC_Foamcutter\\Airfoils\\NACA2412 4.5 DXF inner half.DXF",
-                            "out.gcode", show_plot=True)
+    generate_gcode_from_dxf(
+        # "D:\\Projects\\CaseAeronauticsTeam\\CNC_Foamcutter\\Airfoils\\OLD_AIRFOILS\\FS_x-01-001 NACA2412 foam wing DXF inner half.DXF",
+        "D:\\Projects\\CaseAeronauticsTeam\\CNC_Foamcutter\\Airfoils\\FSx-01-002 NACA2412 left foam wing.DXF",
+        "out.gcode", 0.6666, show_plot=True, cut_from_trailing_edge=True)
