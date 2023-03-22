@@ -115,12 +115,14 @@ def get_shapes_from_msp(msp):
             center = e.dxf.center
             radius = e.dxf.radius
             print(f"\tRadius: {radius}")
+            print(f"Start Angle: {start_angle}")
+            print(f"End Angle: {end_angle}")
             # dth1 = smallest unit of angular precision that corresponds exactly to the linear precision,
             #        while truncating excess angle, i.e., this will result in the arc not ending where intended
             dth1 = math.degrees(2 * math.asin(dx / (2 * radius * 25.4)))
             # Always moving counter-clockwise (positive theta)
             if start_angle < end_angle:
-                theta = start_angle - end_angle
+                theta = end_angle - start_angle
             else:
                 theta = 360 - abs(start_angle - end_angle)
             n_wedges = math.floor(theta / dth1)
@@ -190,7 +192,7 @@ def order_points_from_shapes(shapes):
         shape = min_shape
     print("\n\nOrder:")
     for s in debug_order_list:
-        print(s.name)
+        print(f"\t{s.name}")
     return points
 
 
@@ -202,6 +204,11 @@ def generate_gcode_from_dxf(input_filename, output_filename, speed, show_plot=Tr
         exit()
     except ezdxf.DXFStructureError:
         print(f"Invalid or corrupted DXF file.")
+        exit()
+
+    if doc.units != 1:
+        print(f"DXF Units are not in inches!")
+        print("Modify code to add support for other units...")
         exit()
 
     msp = doc.modelspace()
@@ -217,7 +224,7 @@ def generate_gcode_from_dxf(input_filename, output_filename, speed, show_plot=Tr
 
     print(f"Points:\n{ordered_points}")
 
-    # Find left most point and rotate list to make that the starting point
+    # Find left/right most point and rotate list to make that the starting point
     min_or_max_x = ordered_points[0][0]
     start_index = 0
     for i, p in enumerate(ordered_points):
@@ -254,5 +261,9 @@ def generate_gcode_from_dxf(input_filename, output_filename, speed, show_plot=Tr
 if __name__ == '__main__':
     generate_gcode_from_dxf(
         # "D:\\Projects\\CaseAeronauticsTeam\\CNC_Foamcutter\\Airfoils\\OLD_AIRFOILS\\FS_x-01-001 NACA2412 foam wing DXF inner half.DXF",
-        "D:\\Projects\\CaseAeronauticsTeam\\CNC_Foamcutter\\Airfoils\\FSx-01-002 NACA2412 left foam wing.DXF",
-        "out.gcode", 0.6666, show_plot=True, cut_from_trailing_edge=True)
+        # "D:\\Projects\\CaseAeronauticsTeam\\CNC_Foamcutter\\Airfoils\\FSx-01-002 NACA2412 left foam wing.DXF",
+        "D:\\Projects\\CaseAeronauticsTeam\\CNC_Foamcutter\\Airfoils\\V2\\NACA2412_wing_10.DXF",
+        "out.gcode",
+        speed=0.666,
+        show_plot=True,
+        cut_from_trailing_edge=True)

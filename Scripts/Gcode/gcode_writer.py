@@ -25,7 +25,7 @@ def generate_2_axis_gcode(x_series, y_series, input_filename, output_filename, s
     print(f"Chord: {(max(x_series) - min(x_series)) / 25.4} in")
     print("--------------------------------------------------------------------------------\n")
 
-    print(f"Writing G-Code to {output_filename}")
+    # print(f"Writing G-Code to {output_filename} ...")
     f = open(output_filename, "w")
     f.write(";FLAVOR:Marlin\n;For: CAT 2-Axis CNC Foamcutter\n")
     f.write(f";Created: {datetime.datetime.now()}\n")
