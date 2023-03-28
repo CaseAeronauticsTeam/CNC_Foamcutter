@@ -49,8 +49,7 @@ def plot(x_series, y_series, plot_name, cut_from_trailing_edge=False):
 
     ax.grid()
 
-
-    print(f"Chord: {x_chord}\nThickenss: {y_chord}")
+    print(f"Chord: {x_chord}\nThickness: {y_chord}")
     if cut_from_trailing_edge:
         if x_chord > y_chord:
             plt.xlim(-x_chord * 0.1 - x_chord, x_chord * 0.1)
@@ -66,7 +65,7 @@ def plot(x_series, y_series, plot_name, cut_from_trailing_edge=False):
             plt.xlim(-y_chord * 0.1, y_chord * 2 + y_chord * 0.1)
             plt.ylim(-y_chord * 1.1, y_chord * 1.1)
 
-    fig.savefig("preview.png", dpi=2000)
+    fig.savefig("preview.png", dpi=1000)
     plt.show()
 
 
@@ -262,8 +261,9 @@ if __name__ == '__main__':
     generate_gcode_from_dxf(
         # "D:\\Projects\\CaseAeronauticsTeam\\CNC_Foamcutter\\Airfoils\\OLD_AIRFOILS\\FS_x-01-001 NACA2412 foam wing DXF inner half.DXF",
         # "D:\\Projects\\CaseAeronauticsTeam\\CNC_Foamcutter\\Airfoils\\FSx-01-002 NACA2412 left foam wing.DXF",
-        "D:\\Projects\\CaseAeronauticsTeam\\CNC_Foamcutter\\Airfoils\\V2\\NACA2412_wing_10.DXF",
+        # "D:\\Projects\\CaseAeronauticsTeam\\CNC_Foamcutter\\Airfoils\\V2\\NACA2412_wing_10.DXF",
+        "D:\\Projects\\CaseAeronauticsTeam\\CNC_Foamcutter\\Airfoils\\MOST UP TO DATE DXFs\\DXFs\\FS-01-015_foam_horiz_stabilizer_0012_UPSCALED.DXF",
         "out.gcode",
-        speed=0.666,
+        speed=1.25,
         show_plot=True,
         cut_from_trailing_edge=True)
