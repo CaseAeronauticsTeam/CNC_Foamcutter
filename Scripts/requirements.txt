@@ -1,0 +1,2 @@
+matplotlib~=3.6.1
+ezdxf~=0.18.1
