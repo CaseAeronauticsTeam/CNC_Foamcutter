@@ -105,15 +105,20 @@ def get_shapes_from_msp(msp):
                 points.append((cp[0] * 25.4, cp[1] * 25.4))
             spline = Shape(points, "Spline")
             shapes.append(spline)
-        elif e.dxftype() == "ARC":
+        elif ( e.dxftype() == "ARC" ) or ( e.dxftype() == "CIRCLE" ) :
             print("ARC on layer: %s" % e.dxf.layer)
-            print(f"\tStart Angle {e.dxf.start_angle}")
-            print(f"\tEnd Angle {e.dxf.end_angle}")
-            start_angle = e.dxf.start_angle
-            end_angle = e.dxf.end_angle
+            if e.dxftype() == "ARC":
+                print(f"\tStart Angle {e.dxf.start_angle}")
+                print(f"\tEnd Angle {e.dxf.end_angle}")
+                start_angle = e.dxf.start_angle
+                end_angle = e.dxf.end_angle
+            else:
+                start_angle = 0
+                end_angle = 360
             center = e.dxf.center
             radius = e.dxf.radius
             print(f"\tRadius: {radius}")
+            print( f"Center: {center}" )
             print(f"Start Angle: {start_angle}")
             print(f"End Angle: {end_angle}")
             # dth1 = smallest unit of angular precision that corresponds exactly to the linear precision,
@@ -221,7 +226,7 @@ def generate_gcode_from_dxf(input_filename, output_filename, speed, show_plot=Tr
 
     ordered_points = order_points_from_shapes(shapes)
 
-    print(f"Points:\n{ordered_points}")
+    # print(f"Points:\n{ordered_points}")
 
     # Find left/right most point and rotate list to make that the starting point
     min_or_max_x = ordered_points[0][0]
@@ -259,11 +264,11 @@ def generate_gcode_from_dxf(input_filename, output_filename, speed, show_plot=Tr
 
 if __name__ == '__main__':
     generate_gcode_from_dxf(
-        # "D:\\Projects\\CaseAeronauticsTeam\\CNC_Foamcutter\\Airfoils\\OLD_AIRFOILS\\FS_x-01-001 NACA2412 foam wing DXF inner half.DXF",
-        # "D:\\Projects\\CaseAeronauticsTeam\\CNC_Foamcutter\\Airfoils\\FSx-01-002 NACA2412 left foam wing.DXF",
-        # "D:\\Projects\\CaseAeronauticsTeam\\CNC_Foamcutter\\Airfoils\\V2\\NACA2412_wing_10.DXF",
-        "D:\\Projects\\CaseAeronauticsTeam\\CNC_Foamcutter\\Airfoils\\MOST UP TO DATE DXFs\\DXFs\\FS-01-015_foam_horiz_stabilizer_0012_UPSCALED.DXF",
-        "out.gcode",
-        speed=1.25,
+        "filename",
+        "job.gcode",
+
+        speed=0.66,
         show_plot=True,
-        cut_from_trailing_edge=True)
+        cut_from_trailing_edge=True
+    )
+

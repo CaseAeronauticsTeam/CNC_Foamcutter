@@ -12,7 +12,7 @@ set(CMAKE_CXX_COMPILER_WORKS 1)
 
 project("teensy_41" C CXX)
 
-include(CMakeListsPrivate.txt)
+# include(CMakeListsPrivate.txt)
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/CMakeListsUser.txt)
 include(CMakeListsUser.txt)

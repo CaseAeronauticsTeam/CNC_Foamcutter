@@ -41,7 +41,7 @@ const int adc_bitwidth = 10;
 const int noise_margin = 50;
 const int max_delay = 2000;
 const int min_delay = 100;
-const int pulse_width = 1;  // usec
+const int pulse_width = 3;  // usec
 const double delay_coeff = 1;
 const int half_adc_max = 1 << (adc_bitwidth - 1);
 const double step_delta = thread_pitch / (double)steps_per_rev; // mm per step
@@ -67,6 +67,8 @@ SdFile file;
 
 void stepX(bool dir);
 void stepY(bool dir);
+void stepX2( bool dir );
+void stepY2( bool dir );
 void g0MoveTo(double x2, double y2);
 void g1MoveTo(double x2, double y2);
 bool readNoisyPin(int pin);
@@ -107,7 +109,7 @@ void loop() {
             digitalWrite(idle_state_led, 1);
             digitalWrite(homing_state_led, 0);
             digitalWrite(running_job_state_led, 0);
-//            Serial.println("Idling");
+        //    Serial.println("Idling");
 
 
             // Check buttons for state change
@@ -268,6 +270,20 @@ void stepY(bool dir) {
     digitalWrite(yStepPin, 0);
 }
 
+void stepX2( bool dir ) {
+    digitalWrite(xDirPin, dir);
+    digitalWrite(xStepPin, 1);
+    delayNanoseconds(500);
+    digitalWrite(xStepPin, 0);
+}
+
+void stepY2( bool dir ) {
+    digitalWrite(yDirPin, dir);
+    digitalWrite(yStepPin, 1);
+    delayNanoseconds(500);
+    digitalWrite(yStepPin, 0);
+}
+
 void stepXY(bool xDir, bool yDir) {
     digitalWrite(xDirPin, xDir);
     digitalWrite(yDirPin, yDir);
@@ -276,6 +292,8 @@ void stepXY(bool xDir, bool yDir) {
     delayMicroseconds(pulse_width);
     digitalWrite(xStepPin, 0);
     digitalWrite(yStepPin, 0);
+    // stepX2( xDir );
+    // stepY2( yDir );
 }
 
 void moveTo(double x2, double y2, unsigned long step_delay) {
@@ -285,8 +303,19 @@ void moveTo(double x2, double y2, unsigned long step_delay) {
     int ySteps = abs(y2 - current_y) / step_delta;
     bool xDir = x2 >= current_x ? RIGHT : LEFT;
     bool yDir = y2 >= current_y ? UP : DOWN;
+    // if ( yDir == DOWN ) { // y = -y lmao
+    //     digitalWrite(idle_state_led, 0);
+    //     digitalWrite(homing_state_led, 1);
+    //     digitalWrite(running_job_state_led, 0);
+
+    //     delayMicroseconds( 500000 );
+
+    //     digitalWrite(idle_state_led, 0);
+    //     digitalWrite(homing_state_led, 0);
+    //     digitalWrite(running_job_state_led, 1);
+    // }
     // Then interpolate
-    if (xSteps >= ySteps) { // if slope <= 1
+    if (xSteps >= ySteps) { // if abs(slope) <= 1
         int m = 2 * ySteps;
         int slope_error = m - xSteps;
         for (int x = 0, y = 0; x <= xSteps; x++) {
@@ -302,10 +331,14 @@ void moveTo(double x2, double y2, unsigned long step_delay) {
 
             // if slope error reached its limit, increment y and update slope error
             if (slope_error >= 0) {
-                stepXY(xDir, yDir);
+                digitalWrite(homing_state_led, 1);
+                // stepXY(xDir, yDir);
+                stepX( xDir );
+                stepY( yDir );
                 y++;
                 slope_error -= 2 * xSteps;
             } else {
+                digitalWrite(homing_state_led, 0);
                 stepX(xDir);
             }
         }

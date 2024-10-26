@@ -7,7 +7,7 @@ def generate_2_axis_gcode(x_series, y_series, input_filename, output_filename, s
     out = ""
     length = 0
     last_x, last_y = x_series[0], y_series[0]
-
+    print( max( y_series ), min( y_series ) )
     # Normalize the G-Code to the first point in the CSV
     x_origin_offset = x_series[0]
     y_origin_offset = y_series[0]
